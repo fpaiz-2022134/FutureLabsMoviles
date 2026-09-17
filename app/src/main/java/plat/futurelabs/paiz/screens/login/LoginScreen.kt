@@ -51,7 +51,7 @@ fun LoginScreen(
         }
 
         Text(
-            text = "Franco Paiz - 25780",
+            text = "Franco Paiz - #25780",
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(24.dp),

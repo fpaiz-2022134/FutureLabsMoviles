@@ -15,6 +15,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import plat.futurelabs.paiz.AppNavigation.AppNavigation
 import plat.futurelabs.paiz.ui.theme.FutureLabsMovilesTheme
 
+/*
+*@author Franco Paiz 25780
+*
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
