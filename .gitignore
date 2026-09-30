@@ -11,6 +11,11 @@ build/
 # Local configuration
 local.properties
 
+# Android build/generated files
+captures/
+.externalNativeBuild/
+.cxx/
+
 # OS
 .DS_Store
 Thumbs.db
