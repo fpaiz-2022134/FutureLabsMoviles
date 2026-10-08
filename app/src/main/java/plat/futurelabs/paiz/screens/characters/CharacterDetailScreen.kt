@@ -1,3 +1,4 @@
+
 package plat.futurelabs.paiz.screens.characters
 
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -17,26 +19,64 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
-import plat.futurelabs.paiz.CharacterDb
+import plat.futurelabs.paiz.Character
+import plat.futurelabs.paiz.screens.common.ErrorLayout
+import plat.futurelabs.paiz.screens.common.LoadingLayout
 
-import androidx.compose.material3.ExperimentalMaterial3Api
+@Composable
+fun CharacterDetailRoute(
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: CharacterDetailViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    when {
+        uiState.hasError -> {
+            ErrorLayout(
+                onRetryClick = {
+                    viewModel.retry()
+                },
+                modifier = modifier
+            )
+        }
+
+        uiState.isLoading -> {
+            LoadingLayout(
+                onClick = {
+                    viewModel.showError()
+                },
+                modifier = modifier
+            )
+        }
+
+        uiState.data != null -> {
+            CharacterDetailScreen(
+                character = uiState.data!!,
+                onBackClick = onBackClick,
+                modifier = modifier
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharacterDetailScreen(
-    characterId: Int,
+    character: Character,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val character = CharacterDb().getCharacterById(characterId)
-
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -66,7 +106,6 @@ fun CharacterDetailScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-
             AsyncImage(
                 model = character.image,
                 contentDescription = "Imagen de ${character.name}",
@@ -86,7 +125,6 @@ fun CharacterDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-
                 CharacterDetailRow(
                     label = "Species:",
                     value = character.species
@@ -116,7 +154,6 @@ private fun CharacterDetailRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge
