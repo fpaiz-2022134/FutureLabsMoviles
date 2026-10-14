@@ -1,3 +1,4 @@
+
 package plat.futurelabs.paiz.navigation
 
 import androidx.compose.runtime.Composable
@@ -6,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import plat.futurelabs.paiz.screens.login.LoginScreen
+import plat.futurelabs.paiz.screens.login.StartupScreen
 
 @Composable
 fun AppNavigation(
@@ -15,31 +17,56 @@ fun AppNavigation(
 
     NavHost(
         navController = navController,
-        startDestination = LoginDestination,
+        startDestination = StartupDestination,
         modifier = modifier
     ) {
 
-        composable<LoginDestination> {
+        // Verificar sesión almacenada
 
-            LoginScreen(
-                onStartClick = {
+        composable<StartupDestination> {
+            StartupScreen(
+                onSessionFound = {
                     navController.navigate(MainDestination) {
-
-                        popUpTo<LoginDestination> {
+                        popUpTo<StartupDestination> {
                             inclusive = true
                         }
+                        launchSingleTop = true
+                    }
+                },
+                onSessionNotFound = {
+                    navController.navigate(LoginDestination) {
+                        popUpTo<StartupDestination> {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
                     }
                 }
             )
         }
 
-        composable<MainDestination> {
+        // Login
 
+        composable<LoginDestination> {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate(MainDestination) {
+                        popUpTo<LoginDestination> {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        // Aplicación principal
+
+        composable<MainDestination> {
             MainNavigation(
                 onLogout = {
                     navController.navigate(LoginDestination) {
-
                         popUpTo(0)
+                        launchSingleTop = true
                     }
                 }
             )
