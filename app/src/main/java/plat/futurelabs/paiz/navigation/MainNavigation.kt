@@ -12,12 +12,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import plat.futurelabs.paiz.screens.characters.CharacterDetailScreen
-import plat.futurelabs.paiz.screens.characters.CharactersScreen
-import plat.futurelabs.paiz.screens.locations.LocationDetailScreen
-import plat.futurelabs.paiz.screens.locations.LocationsScreen
+
 import plat.futurelabs.paiz.screens.profile.ProfileScreen
 import androidx.navigation.NavDestination.Companion.hierarchy
+import plat.futurelabs.paiz.screens.characters.CharacterDetailRoute
+import plat.futurelabs.paiz.screens.characters.CharactersRoute
+import plat.futurelabs.paiz.screens.locations.LocationsRoute
+import plat.futurelabs.paiz.screens.locations.LocationDetailRoute
 @Composable
 fun MainNavigation(
     onLogout: () -> Unit,
@@ -25,7 +26,7 @@ fun MainNavigation(
 ) {
     val navController = rememberNavController()
 
-    // Observamos cuál es el destino actual.
+    // Vemos cuál es el destino actual.
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
     val currentDestination = navBackStackEntry?.destination
@@ -150,7 +151,7 @@ fun MainNavigation(
 
                 composable<CharactersDestination> {
 
-                    CharactersScreen(
+                    CharactersRoute(
                         onCharacterClick = { characterId ->
 
                             navController.navigate(
@@ -169,9 +170,7 @@ fun MainNavigation(
                         backStackEntry
                             .toRoute<CharacterDetailDestination>()
 
-                    CharacterDetailScreen(
-                        characterId = destination.id,
-
+                    CharacterDetailRoute(
                         onBackClick = {
                             navController.popBackStack()
                         }
@@ -188,13 +187,10 @@ fun MainNavigation(
 
                 composable<LocationsDestination> {
 
-                    LocationsScreen(
-                        onLocationClick = { locationId ->
-
+                    LocationsRoute(
+                        onLocationClick = { id ->
                             navController.navigate(
-                                LocationDetailDestination(
-                                    id = locationId
-                                )
+                                LocationDetailDestination(id)
                             )
                         }
                     )
@@ -207,9 +203,7 @@ fun MainNavigation(
                         backStackEntry
                             .toRoute<LocationDetailDestination>()
 
-                    LocationDetailScreen(
-                        locationId = destination.id,
-
+                    LocationDetailRoute(
                         onBackClick = {
                             navController.popBackStack()
                         }

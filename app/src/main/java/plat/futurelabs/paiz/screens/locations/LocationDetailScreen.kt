@@ -1,3 +1,4 @@
+
 package plat.futurelabs.paiz.screens.locations
 
 import androidx.compose.foundation.layout.Arrangement
@@ -15,58 +16,78 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import plat.futurelabs.paiz.LocationDb
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import plat.futurelabs.paiz.Location
+import plat.futurelabs.paiz.screens.common.ErrorLayout
+import plat.futurelabs.paiz.screens.common.LoadingLayout
+
+@Composable
+fun LocationDetailRoute(
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: LocationDetailViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    when {
+        uiState.hasError -> {
+            ErrorLayout(
+                onRetryClick = {
+                    viewModel.retry()
+                },
+                modifier = modifier
+            )
+        }
+
+        uiState.isLoading -> {
+            LoadingLayout(
+                onClick = {
+                    viewModel.showError()
+                },
+                modifier = modifier
+            )
+        }
+
+        uiState.data != null -> {
+            LocationDetailScreen(
+                location = uiState.data!!,
+                onBackClick = onBackClick,
+                modifier = modifier
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocationDetailScreen(
-    locationId: Int,
+    location: Location,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-
-    val location =
-        LocationDb().getLocationById(locationId)
-
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-
             TopAppBar(
                 title = {
                     Text("Location details")
                 },
-
                 navigationIcon = {
-
                     IconButton(
                         onClick = onBackClick
                     ) {
-
                         Icon(
-                            imageVector =
-                                Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Regresar"
                         )
                     }
-                },
-
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor =
-                        MaterialTheme.colorScheme.primaryContainer,
-
-                    titleContentColor =
-                        MaterialTheme.colorScheme.onPrimaryContainer,
-
-                    navigationIconContentColor =
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                }
             )
         }
     ) { innerPadding ->
@@ -75,32 +96,25 @@ fun LocationDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(32.dp)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-
             Text(
                 text = location.name,
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
             )
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-
-                LocationInfoRow(
-                    label = "ID:",
-                    value = location.id.toString()
-                )
-
-                LocationInfoRow(
+                LocationDetailRow(
                     label = "Type:",
                     value = location.type
                 )
 
-                LocationInfoRow(
+                LocationDetailRow(
                     label = "Dimension:",
                     value = location.dimension
                 )
@@ -110,20 +124,18 @@ fun LocationDetailScreen(
 }
 
 @Composable
-private fun LocationInfoRow(
+private fun LocationDetailRow(
     label: String,
-    value: String
+    value: String,
+    modifier: Modifier = Modifier
 ) {
-
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.bodyLarge
         )
 
         Text(
