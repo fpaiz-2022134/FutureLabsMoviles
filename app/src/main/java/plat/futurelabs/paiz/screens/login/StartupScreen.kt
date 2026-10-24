@@ -1,6 +1,5 @@
 package plat.futurelabs.paiz.screens.login
 
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.flow.first
 import plat.futurelabs.paiz.data.SessionRepository
+import plat.futurelabs.paiz.data.SyncRepository
+import plat.futurelabs.paiz.data.local.DatabaseProvider
 
 @Composable
 fun StartupScreen(
@@ -23,14 +24,29 @@ fun StartupScreen(
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        val repository = SessionRepository(context)
+        val sessionRepository = SessionRepository(context)
 
-        val name = repository.userName.first()
+        val name = sessionRepository.userName.first()
 
-        if (!name.isNullOrBlank()) {
-            onSessionFound()
-        } else {
+        if (name.isNullOrBlank()) {
             onSessionNotFound()
+        } else {
+            val database = DatabaseProvider.getDatabase(context)
+            val syncRepository = SyncRepository(database)
+
+            try {
+                if (!syncRepository.hasInitialData()) {
+                    syncRepository.insertMissingData()
+                }
+
+                if (syncRepository.hasInitialData()) {
+                    onSessionFound()
+                } else {
+                    onSessionNotFound()
+                }
+            } catch (e: Exception) {
+                onSessionNotFound()
+            }
         }
     }
 

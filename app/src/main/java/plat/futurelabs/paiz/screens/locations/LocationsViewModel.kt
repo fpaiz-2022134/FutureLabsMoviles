@@ -1,16 +1,17 @@
-
 package plat.futurelabs.paiz.screens.locations
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import plat.futurelabs.paiz.Location
-import plat.futurelabs.paiz.LocationDb
+import plat.futurelabs.paiz.data.LocationRepository
+import plat.futurelabs.paiz.data.local.DatabaseProvider
 
 data class LocationsUiState(
     val isLoading: Boolean = true,
@@ -18,14 +19,15 @@ data class LocationsUiState(
     val hasError: Boolean = false
 )
 
-class LocationsViewModel : ViewModel() {
+class LocationsViewModel(
+    application: Application
+) : AndroidViewModel(application) {
 
-    private val locationDb = LocationDb()
-
-    private val _uiState = MutableStateFlow(
-        LocationsUiState()
+    private val repository = LocationRepository(
+        DatabaseProvider.getDatabase(application).locationDao()
     )
 
+    private val _uiState = MutableStateFlow(LocationsUiState())
     val uiState: StateFlow<LocationsUiState> =
         _uiState.asStateFlow()
 
@@ -39,19 +41,24 @@ class LocationsViewModel : ViewModel() {
         loadingJob?.cancel()
 
         loadingJob = viewModelScope.launch {
-            _uiState.value = LocationsUiState(
-                isLoading = true,
-                data = emptyList(),
-                hasError = false
-            )
+            _uiState.value = LocationsUiState()
 
-            delay(4000)
-
-            _uiState.value = LocationsUiState(
-                isLoading = false,
-                data = locationDb.getAllLocations(),
-                hasError = false
-            )
+            try {
+                repository.getAllLocations().collect { locations ->
+                    _uiState.value = LocationsUiState(
+                        isLoading = false,
+                        data = locations,
+                        hasError = false
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.value = LocationsUiState(
+                    isLoading = false,
+                    hasError = true
+                )
+            }
         }
     }
 

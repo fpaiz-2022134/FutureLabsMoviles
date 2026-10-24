@@ -1,18 +1,19 @@
-
 package plat.futurelabs.paiz.screens.locations
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import plat.futurelabs.paiz.Location
-import plat.futurelabs.paiz.LocationDb
+import plat.futurelabs.paiz.data.LocationRepository
+import plat.futurelabs.paiz.data.local.DatabaseProvider
 import plat.futurelabs.paiz.navigation.LocationDetailDestination
 
 data class LocationDetailUiState(
@@ -22,15 +23,16 @@ data class LocationDetailUiState(
 )
 
 class LocationDetailViewModel(
+    application: Application,
     savedStateHandle: SavedStateHandle
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
-    private val locationDb = LocationDb()
+    private val repository = LocationRepository(
+        DatabaseProvider.getDatabase(application).locationDao()
+    )
 
-    private val destination =
-        savedStateHandle.toRoute<LocationDetailDestination>()
-
-    private val locationId = destination.id
+    private val locationId = savedStateHandle
+        .toRoute<LocationDetailDestination>().id
 
     private val _uiState = MutableStateFlow(
         LocationDetailUiState()
@@ -49,19 +51,25 @@ class LocationDetailViewModel(
         loadingJob?.cancel()
 
         loadingJob = viewModelScope.launch {
-            _uiState.value = LocationDetailUiState(
-                isLoading = true,
-                data = null,
-                hasError = false
-            )
+            _uiState.value = LocationDetailUiState()
 
-            delay(2000)
-
-            _uiState.value = LocationDetailUiState(
-                isLoading = false,
-                data = locationDb.getLocationById(locationId),
-                hasError = false
-            )
+            try {
+                repository.getLocationById(locationId)
+                    .collect { location ->
+                        _uiState.value = LocationDetailUiState(
+                            isLoading = false,
+                            data = location,
+                            hasError = location == null
+                        )
+                    }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.value = LocationDetailUiState(
+                    isLoading = false,
+                    hasError = true
+                )
+            }
         }
     }
 
