@@ -1,28 +1,20 @@
-
 package plat.futurelabs.paiz.screens.characters
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,18 +36,14 @@ fun CharactersRoute(
     when {
         uiState.hasError -> {
             ErrorLayout(
-                onRetryClick = {
-                    viewModel.retry()
-                },
+                onRetryClick = viewModel::retry,
                 modifier = modifier
             )
         }
 
         uiState.isLoading -> {
             LoadingLayout(
-                onClick = {
-                    viewModel.showError()
-                },
+                onClick = viewModel::showError,
                 modifier = modifier
             )
         }
@@ -63,6 +51,10 @@ fun CharactersRoute(
         else -> {
             CharactersScreen(
                 characters = uiState.data,
+                onlyFavorites = uiState.onlyFavorites,
+                onFavoritesFilterChange =
+                    viewModel::setFavoritesFilter,
+                onFavoriteClick = viewModel::toggleFavorite,
                 onCharacterClick = onCharacterClick,
                 modifier = modifier
             )
@@ -74,6 +66,9 @@ fun CharactersRoute(
 @Composable
 fun CharactersScreen(
     characters: List<Character>,
+    onlyFavorites: Boolean,
+    onFavoritesFilterChange: (Boolean) -> Unit,
+    onFavoriteClick: (Character) -> Unit,
     onCharacterClick: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -81,31 +76,70 @@ fun CharactersScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = {
-                    Text("Characters")
-                }
+                title = { Text("Characters") }
             )
         }
     ) { innerPadding ->
 
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            items(
-                items = characters,
-                key = { character -> character.id }
-            ) { character ->
-
-                CharacterItem(
-                    character = character,
-                    onClick = {
-                        onCharacterClick(character.id)
-                    }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = onlyFavorites,
+                    onCheckedChange = onFavoritesFilterChange
                 )
 
-                HorizontalDivider()
+                Text("Mostrar solo favoritos")
+            }
+
+            HorizontalDivider()
+
+            if (characters.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (onlyFavorites) {
+                            "No hay favoritos para mostrar"
+                        } else {
+                            "No hay personajes para mostrar"
+                        },
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(
+                        items = characters,
+                        key = { it.id }
+                    ) { character ->
+
+                        CharacterItem(
+                            character = character,
+                            onClick = {
+                                onCharacterClick(character.id)
+                            },
+                            onFavoriteClick = {
+                                onFavoriteClick(character)
+                            }
+                        )
+
+                        HorizontalDivider()
+                    }
+                }
             }
         }
     }
@@ -115,14 +149,13 @@ fun CharactersScreen(
 fun CharacterItem(
     character: Character,
     onClick: () -> Unit,
+    onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable {
-                onClick()
-            }
+            .clickable(onClick = onClick)
             .padding(
                 horizontal = 16.dp,
                 vertical = 12.dp
@@ -162,6 +195,26 @@ fun CharacterItem(
             Text(
                 text = "Gender: ${character.gender}",
                 style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        IconButton(onClick = onFavoriteClick) {
+            Icon(
+                imageVector = if (character.isFavorite) {
+                    Icons.Filled.Favorite
+                } else {
+                    Icons.Filled.FavoriteBorder
+                },
+                contentDescription = if (character.isFavorite) {
+                    "Quitar de favoritos"
+                } else {
+                    "Agregar a favoritos"
+                },
+                tint = if (character.isFavorite) {
+                    Color.Red
+                } else {
+                    LocalContentColor.current
+                }
             )
         }
     }

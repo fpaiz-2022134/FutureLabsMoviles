@@ -1,28 +1,18 @@
-
 package plat.futurelabs.paiz.screens.characters
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,18 +34,14 @@ fun CharacterDetailRoute(
     when {
         uiState.hasError -> {
             ErrorLayout(
-                onRetryClick = {
-                    viewModel.retry()
-                },
+                onRetryClick = viewModel::retry,
                 modifier = modifier
             )
         }
 
         uiState.isLoading -> {
             LoadingLayout(
-                onClick = {
-                    viewModel.showError()
-                },
+                onClick = viewModel::showError,
                 modifier = modifier
             )
         }
@@ -64,6 +50,7 @@ fun CharacterDetailRoute(
             CharacterDetailScreen(
                 character = uiState.data!!,
                 onBackClick = onBackClick,
+                onFavoriteClick = viewModel::toggleFavorite,
                 modifier = modifier
             )
         }
@@ -75,22 +62,38 @@ fun CharacterDetailRoute(
 fun CharacterDetailScreen(
     character: Character,
     onBackClick: () -> Unit,
+    onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = {
-                    Text("Characters details")
-                },
+                title = { Text("Characters details") },
                 navigationIcon = {
-                    IconButton(
-                        onClick = onBackClick
-                    ) {
+                    IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector =
+                                Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Regresar"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onFavoriteClick) {
+                        Icon(
+                            imageVector = if (character.isFavorite) {
+                                Icons.Filled.Favorite
+                            } else {
+                                Icons.Filled.FavoriteBorder
+                            },
+                            contentDescription =
+                                "Cambiar estado de favorito",
+                            tint = if (character.isFavorite) {
+                                Color.Red
+                            } else {
+                                LocalContentColor.current
+                            }
                         )
                     }
                 }
@@ -108,7 +111,8 @@ fun CharacterDetailScreen(
         ) {
             AsyncImage(
                 model = character.image,
-                contentDescription = "Imagen de ${character.name}",
+                contentDescription =
+                    "Imagen de ${character.name}",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(220.dp)
