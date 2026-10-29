@@ -15,6 +15,7 @@ import plat.futurelabs.paiz.Location
 import plat.futurelabs.paiz.data.LocationRepository
 import plat.futurelabs.paiz.data.local.DatabaseProvider
 import plat.futurelabs.paiz.navigation.LocationDetailDestination
+import kotlinx.coroutines.delay
 
 data class LocationDetailUiState(
     val isLoading: Boolean = true,
@@ -54,6 +55,8 @@ class LocationDetailViewModel(
             _uiState.value = LocationDetailUiState()
 
             try {
+                delay(2000L)
+
                 repository.getLocationById(locationId)
                     .collect { location ->
                         _uiState.value = LocationDetailUiState(

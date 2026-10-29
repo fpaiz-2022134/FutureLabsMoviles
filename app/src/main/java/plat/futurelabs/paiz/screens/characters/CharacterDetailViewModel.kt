@@ -15,6 +15,7 @@ import plat.futurelabs.paiz.Character
 import plat.futurelabs.paiz.data.CharacterRepository
 import plat.futurelabs.paiz.data.local.DatabaseProvider
 import plat.futurelabs.paiz.navigation.CharacterDetailDestination
+import kotlinx.coroutines.delay
 
 data class CharacterDetailUiState(
     val isLoading: Boolean = true,
@@ -54,6 +55,8 @@ class CharacterDetailViewModel(
             _uiState.value = CharacterDetailUiState()
 
             try {
+                delay(2000L)
+
                 repository.getCharacterById(characterId)
                     .collect { character ->
                         _uiState.value = CharacterDetailUiState(

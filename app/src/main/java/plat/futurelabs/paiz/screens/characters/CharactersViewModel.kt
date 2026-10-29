@@ -13,6 +13,8 @@ import kotlinx.coroutines.launch
 import plat.futurelabs.paiz.Character
 import plat.futurelabs.paiz.data.CharacterRepository
 import plat.futurelabs.paiz.data.local.DatabaseProvider
+import kotlinx.coroutines.delay
+
 
 data class CharactersUiState(
     val isLoading: Boolean = true,
@@ -50,6 +52,8 @@ class CharactersViewModel(
             )
 
             try {
+                delay(4000L)
+
                 combine(
                     repository.getAllCharacters(),
                     onlyFavorites
