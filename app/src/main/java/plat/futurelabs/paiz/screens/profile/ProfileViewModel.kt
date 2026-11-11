@@ -1,14 +1,16 @@
 package plat.futurelabs.paiz.screens.profile
 
-
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import plat.futurelabs.paiz.data.SessionRepository
+import plat.futurelabs.paiz.data.SyncRepository
+import plat.futurelabs.paiz.data.local.DatabaseProvider
 
 data class ProfileUiState(
     val name: String = "",
@@ -21,14 +23,19 @@ class ProfileViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
-    private val repository = SessionRepository(application)
+    private val sessionRepository =
+        SessionRepository(application)
+
+    private val syncRepository = SyncRepository(
+        DatabaseProvider.getDatabase(application)
+    )
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            repository.userName.collect { name ->
+            sessionRepository.userName.collect { name ->
                 _uiState.update {
                     it.copy(name = name.orEmpty())
                 }
@@ -45,7 +52,11 @@ class ProfileViewModel(
             }
 
             try {
-                repository.logout()
+                // Eliminar ambas tablas de Room.
+                syncRepository.clearAllData()
+
+                // Eliminar el nombre de DataStore.
+                sessionRepository.logout()
 
                 _uiState.update {
                     it.copy(
@@ -53,6 +64,8 @@ class ProfileViewModel(
                         logoutSuccessful = true
                     )
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
