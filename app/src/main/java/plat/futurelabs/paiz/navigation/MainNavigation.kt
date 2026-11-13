@@ -1,149 +1,108 @@
+
 package plat.futurelabs.paiz.navigation
 
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
-
-import plat.futurelabs.paiz.screens.profile.ProfileScreen
-import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavDestination.Companion.hasRoute
+import plat.futurelabs.paiz.data.AppContainer
 import plat.futurelabs.paiz.screens.characters.CharacterDetailRoute
+import plat.futurelabs.paiz.screens.characters.CharacterDetailViewModel
+import plat.futurelabs.paiz.screens.characters.CharacterFormScreen
+import plat.futurelabs.paiz.screens.characters.CharacterFormViewModel
 import plat.futurelabs.paiz.screens.characters.CharactersRoute
-import plat.futurelabs.paiz.screens.locations.LocationsRoute
+import plat.futurelabs.paiz.screens.characters.CharactersViewModel
 import plat.futurelabs.paiz.screens.locations.LocationDetailRoute
+import plat.futurelabs.paiz.screens.locations.LocationDetailViewModel
+import plat.futurelabs.paiz.screens.locations.LocationsRoute
+import plat.futurelabs.paiz.screens.locations.LocationsViewModel
+import plat.futurelabs.paiz.screens.profile.ProfileRoute
+
 @Composable
 fun MainNavigation(
-    onLogout: () -> Unit,
-    modifier: Modifier = Modifier
+    onLogout: () -> Unit
 ) {
     val navController = rememberNavController()
+    val context = LocalContext.current
 
-    // Vemos cuál es el destino actual.
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-
-    val currentDestination = navBackStackEntry?.destination
-
-    /*
-     * Determinamos en qué sección principal estamos.
-     *
-     * hierarchy incluye tanto el destino actual como el nested graph
-     * al que pertenece.
-     */
-    val selectedItem = when {
-
-        currentDestination?.hierarchy?.any {
-            it.route == CharactersGraph::class.qualifiedName
-        } == true -> {
-            BottomNavigationItem.CHARACTERS
-        }
-
-        currentDestination?.hierarchy?.any {
-            it.route == LocationsGraph::class.qualifiedName
-        } == true -> {
-            BottomNavigationItem.LOCATIONS
-        }
-
-        currentDestination?.route ==
-                ProfileDestination::class.qualifiedName -> {
-            BottomNavigationItem.PROFILE
-        }
-
-        else -> {
-            BottomNavigationItem.CHARACTERS
-        }
+    val container = remember(context) {
+        AppContainer(context.applicationContext)
     }
 
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = backStackEntry?.destination
 
-    val showBottomBar =
-        currentDestination?.route ==
-                CharactersDestination::class.qualifiedName ||
-                currentDestination?.route ==
-                LocationsDestination::class.qualifiedName ||
-                currentDestination?.route ==
-                ProfileDestination::class.qualifiedName
+    val selectedItem = when {
+        currentDestination?.hierarchy?.any {
+            it.hasRoute<LocationsGraph>()
+        } == true -> BottomNavigationItem.LOCATIONS
+
+        currentDestination?.hierarchy?.any {
+            it.hasRoute<ProfileDestination>()
+        } == true -> BottomNavigationItem.PROFILE
+
+        else -> BottomNavigationItem.CHARACTERS
+    }
 
     Scaffold(
-        modifier = modifier.fillMaxSize(),
-
         bottomBar = {
+            BottomNavigationBar(
+                selectedItem = selectedItem,
 
-            if (showBottomBar) {
-
-                BottomNavigationBar(
-                    selectedItem = selectedItem,
-
-                    onCharactersClick = {
-
-                        navController.navigate(
-                            CharactersGraph
-                        ) {
-
-                            popUpTo(
-                                navController.graph.startDestinationId
-                            ) {
-                                saveState = true
-                            }
-
-                            launchSingleTop = true
-                            restoreState = true
+                onCharactersClick = {
+                    navController.navigate(CharactersGraph) {
+                        popUpTo(CharactersGraph) {
+                            saveState = true
                         }
-                    },
-
-                    onLocationsClick = {
-
-                        navController.navigate(
-                            LocationsGraph
-                        ) {
-
-                            popUpTo(
-                                navController.graph.startDestinationId
-                            ) {
-                                saveState = true
-                            }
-
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-
-                    onProfileClick = {
-
-                        navController.navigate(
-                            ProfileDestination
-                        ) {
-
-                            popUpTo(
-                                navController.graph.startDestinationId
-                            ) {
-                                saveState = true
-                            }
-
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                        launchSingleTop = true
+                        restoreState = true
                     }
-                )
-            }
+                },
+
+                onLocationsClick = {
+                    navController.navigate(LocationsGraph) {
+                        popUpTo(CharactersGraph) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+
+                onProfileClick = {
+                    navController.navigate(ProfileDestination) {
+                        popUpTo(CharactersGraph) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
         }
-    ) { innerPadding ->
+    ) { padding ->
 
         NavHost(
             navController = navController,
             startDestination = CharactersGraph,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+            modifier = Modifier.padding(padding)
         ) {
 
-            // Characters nested graph
+            // CHARACTERS
 
             navigation<CharactersGraph>(
                 startDestination = CharactersDestination
@@ -151,35 +110,76 @@ fun MainNavigation(
 
                 composable<CharactersDestination> {
 
-                    CharactersRoute(
-                        onCharacterClick = { characterId ->
+                    val vm: CharactersViewModel = viewModel()
 
+                    CharactersRoute(
+                        viewModel = vm,
+
+                        onCharacterClick = { id ->
                             navController.navigate(
-                                CharacterDetailDestination(
-                                    id = characterId
-                                )
+                                CharacterDetailDestination(id)
+                            )
+                        },
+
+                        onCreateCharacter = {
+                            navController.navigate(
+                                CharacterFormDestination()
+                            )
+                        },
+
+                        onEditCharacter = { id ->
+                            navController.navigate(
+                                CharacterFormDestination(id)
                             )
                         }
                     )
                 }
 
                 composable<CharacterDetailDestination> {
-                        backStackEntry ->
 
-                    val destination =
-                        backStackEntry
-                            .toRoute<CharacterDetailDestination>()
+                    val vm: CharacterDetailViewModel = viewModel()
 
                     CharacterDetailRoute(
-                        onBackClick = {
+                        viewModel = vm,
+
+                        onBack = {
+                            navController.popBackStack()
+                        },
+
+                        onEditCharacter = { id ->
+                            navController.navigate(
+                                CharacterFormDestination(id)
+                            )
+                        }
+                    )
+                }
+
+                composable<CharacterFormDestination> { entry ->
+
+                    val vm: CharacterFormViewModel = viewModel(
+                        viewModelStoreOwner = entry,
+
+                        factory = viewModelFactory {
+                            initializer {
+                                CharacterFormViewModel(
+                                    repository = container.characterRepository,
+                                    savedStateHandle = createSavedStateHandle()
+                                )
+                            }
+                        }
+                    )
+
+                    CharacterFormScreen(
+                        viewModel = vm,
+
+                        onBack = {
                             navController.popBackStack()
                         }
                     )
                 }
             }
 
-
-            // Locations nested graph
+            // LOCATIONS
 
             navigation<LocationsGraph>(
                 startDestination = LocationsDestination
@@ -187,7 +187,11 @@ fun MainNavigation(
 
                 composable<LocationsDestination> {
 
+                    val vm: LocationsViewModel = viewModel()
+
                     LocationsRoute(
+                        viewModel = vm,
+
                         onLocationClick = { id ->
                             navController.navigate(
                                 LocationDetailDestination(id)
@@ -197,27 +201,24 @@ fun MainNavigation(
                 }
 
                 composable<LocationDetailDestination> {
-                        backStackEntry ->
 
-                    val destination =
-                        backStackEntry
-                            .toRoute<LocationDetailDestination>()
+                    val vm: LocationDetailViewModel = viewModel()
 
                     LocationDetailRoute(
-                        onBackClick = {
+                        viewModel = vm,
+
+                        onBack = {
                             navController.popBackStack()
                         }
                     )
                 }
             }
 
-
-            // Profile
+            // PROFILE
 
             composable<ProfileDestination> {
-
-                ProfileScreen(
-                    onLogoutClick = onLogout
+                ProfileRoute(
+                    onLogout = onLogout
                 )
             }
         }

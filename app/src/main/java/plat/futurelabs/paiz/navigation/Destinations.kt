@@ -3,8 +3,6 @@ package plat.futurelabs.paiz.navigation
 
 import kotlinx.serialization.Serializable
 
-// Navegación principal
-
 @Serializable
 data object StartupDestination
 
@@ -13,8 +11,6 @@ data object LoginDestination
 
 @Serializable
 data object MainDestination
-
-// Characters nested graph
 
 @Serializable
 data object CharactersGraph
@@ -27,7 +23,10 @@ data class CharacterDetailDestination(
     val id: Int
 )
 
-// Locations nested graph
+@Serializable
+data class CharacterFormDestination(
+    val id: Int? = null
+)
 
 @Serializable
 data object LocationsGraph
@@ -39,8 +38,6 @@ data object LocationsDestination
 data class LocationDetailDestination(
     val id: Int
 )
-
-// Profile
 
 @Serializable
 data object ProfileDestination

@@ -1,23 +1,16 @@
+
 package plat.futurelabs.paiz.screens.characters
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import plat.futurelabs.paiz.Character
 import plat.futurelabs.paiz.screens.common.ErrorLayout
@@ -25,147 +18,167 @@ import plat.futurelabs.paiz.screens.common.LoadingLayout
 
 @Composable
 fun CharacterDetailRoute(
-    onBackClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    viewModel: CharacterDetailViewModel = viewModel()
+    viewModel: CharacterDetailViewModel,
+    onBack: () -> Unit,
+    onEditCharacter: (Int) -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val deleted by viewModel.deleted.collectAsStateWithLifecycle()
 
-    when {
-        uiState.hasError -> {
-            ErrorLayout(
-                onRetryClick = viewModel::retry,
-                modifier = modifier
-            )
-        }
-
-        uiState.isLoading -> {
-            LoadingLayout(
-                onClick = viewModel::showError,
-                modifier = modifier
-            )
-        }
-
-        uiState.data != null -> {
-            CharacterDetailScreen(
-                character = uiState.data!!,
-                onBackClick = onBackClick,
-                onFavoriteClick = viewModel::toggleFavorite,
-                modifier = modifier
-            )
-        }
+    LaunchedEffect(deleted) {
+        if (deleted) onBack()
     }
+
+    CharacterDetailScreen(
+        state = state,
+        onBack = onBack,
+        onEditCharacter = onEditCharacter,
+        onFavoriteClick = viewModel::toggleFavorite,
+        onDeleteClick = viewModel::deleteCharacter,
+        onLoadingClick = viewModel::showError,
+        onRetryClick = viewModel::retry
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharacterDetailScreen(
-    character: Character,
-    onBackClick: () -> Unit,
+    state: CharacterDetailUiState,
+    onBack: () -> Unit,
+    onEditCharacter: (Int) -> Unit,
     onFavoriteClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onDeleteClick: () -> Unit,
+    onLoadingClick: () -> Unit,
+    onRetryClick: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Scaffold(
-        modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("Characters details") },
+                title = { Text("Character Detail") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector =
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Regresar"
-                        )
+                    TextButton(onClick = onBack) {
+                        Text("Atrás")
                     }
                 },
                 actions = {
-                    IconButton(onClick = onFavoriteClick) {
-                        Icon(
-                            imageVector = if (character.isFavorite) {
-                                Icons.Filled.Favorite
-                            } else {
-                                Icons.Filled.FavoriteBorder
-                            },
-                            contentDescription =
-                                "Cambiar estado de favorito",
-                            tint = if (character.isFavorite) {
-                                Color.Red
-                            } else {
-                                LocalContentColor.current
-                            }
-                        )
+                    state.data?.let { character ->
+                        IconButton(onClick = onFavoriteClick) {
+                            Text(
+                                if (character.isFavorite) "♥" else "♡",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = if (character.isFavorite)
+                                    MaterialTheme.colorScheme.error
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             )
         }
-    ) { innerPadding ->
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            AsyncImage(
-                model = character.image,
-                contentDescription =
-                    "Imagen de ${character.name}",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(220.dp)
-                    .clip(CircleShape)
+    ) { padding ->
+        when {
+            state.hasError -> ErrorLayout(
+                onRetryClick = onRetryClick,
+                modifier = Modifier.padding(padding)
             )
 
-            Text(
-                text = character.name,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+            state.isLoading -> LoadingLayout(
+                onClick = onLoadingClick,
+                modifier = Modifier.padding(padding)
             )
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            state.data != null -> CharacterDetailContent(
+                character = state.data,
+                onEdit = { onEditCharacter(state.data.id) },
+                onDelete = { showDeleteDialog = true },
+                modifier = Modifier.padding(padding)
+            )
+
+            else -> Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                CharacterDetailRow(
-                    label = "Species:",
-                    value = character.species
-                )
-
-                CharacterDetailRow(
-                    label = "Status:",
-                    value = character.status
-                )
-
-                CharacterDetailRow(
-                    label = "Gender:",
-                    value = character.gender
-                )
+                Text("Personaje no encontrado")
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar personaje") },
+            text = {
+                Text("¿Estás seguro de eliminar este personaje?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteClick()
+                    }
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
 @Composable
-private fun CharacterDetailRow(
-    label: String,
-    value: String,
+private fun CharacterDetailContent(
+    character: Character,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge
+        AsyncImage(
+            model = characterImageModel(character.image),
+            contentDescription = character.name,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(180.dp)
+                .clip(CircleShape)
         )
 
         Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge
+            character.name,
+            style = MaterialTheme.typography.headlineMedium
         )
+
+        Text("Estado: ${character.status}")
+        Text("Especie: ${character.species}")
+        Text("Género: ${character.gender}")
+
+        Button(
+            onClick = onEdit,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Editar personaje")
+        }
+
+        Button(
+            onClick = onDelete,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error
+            )
+        ) {
+            Text("Eliminar personaje")
+        }
     }
 }

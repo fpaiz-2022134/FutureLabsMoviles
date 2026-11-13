@@ -1,61 +1,57 @@
+
 package plat.futurelabs.paiz.screens.login
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
-import plat.futurelabs.paiz.data.SessionRepository
-import plat.futurelabs.paiz.data.SyncRepository
-import plat.futurelabs.paiz.data.local.DatabaseProvider
+import plat.futurelabs.paiz.data.AppContainer
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun StartupScreen(
-    onSessionFound: () -> Unit,
-    onSessionNotFound: () -> Unit,
-    modifier: Modifier = Modifier
+    onNavigateToLogin: () -> Unit,
+    onNavigateToMain: () -> Unit
 ) {
     val context = LocalContext.current
 
+    val container = remember(context) {
+        AppContainer(context.applicationContext)
+    }
+
     LaunchedEffect(Unit) {
-        val sessionRepository = SessionRepository(context)
+        try {
+            val name = container.sessionRepository.userName.first()
 
-        val name = sessionRepository.userName.first()
-
-        if (name.isNullOrBlank()) {
-            onSessionNotFound()
-        } else {
-            val database = DatabaseProvider.getDatabase(context)
-            val syncRepository = SyncRepository(database)
-
-            try {
-                if (!syncRepository.hasInitialData()) {
-                    syncRepository.insertMissingData()
-                }
-
-                if (syncRepository.hasInitialData()) {
-                    onSessionFound()
-                } else {
-                    onSessionNotFound()
-                }
-            } catch (e: Exception) {
-                onSessionNotFound()
+            if (name.isNullOrBlank()) {
+                onNavigateToLogin()
+            } else if (container.syncRepository.hasInitialData()) {
+                onNavigateToMain()
+            } else {
+                container.sessionRepository.logout()
+                onNavigateToLogin()
             }
+
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            onNavigateToLogin()
         }
     }
 
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator()
-        Text("Cargando sesión...")
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            CircularProgressIndicator()
+            Text("Preparando aplicación...")
+        }
     }
 }

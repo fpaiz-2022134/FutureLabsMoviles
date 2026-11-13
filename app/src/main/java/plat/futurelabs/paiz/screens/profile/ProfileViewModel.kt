@@ -1,3 +1,4 @@
+
 package plat.futurelabs.paiz.screens.profile
 
 import android.app.Application
@@ -5,12 +6,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import plat.futurelabs.paiz.data.SessionRepository
-import plat.futurelabs.paiz.data.SyncRepository
-import plat.futurelabs.paiz.data.local.DatabaseProvider
+import plat.futurelabs.paiz.data.AppContainer
 
 data class ProfileUiState(
     val name: String = "",
@@ -23,15 +23,16 @@ class ProfileViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
-    private val sessionRepository =
-        SessionRepository(application)
+    private val container = AppContainer(application)
 
-    private val syncRepository = SyncRepository(
-        DatabaseProvider.getDatabase(application)
-    )
+    private val sessionRepository = container.sessionRepository
+
+    private val syncRepository = container.syncRepository
 
     private val _uiState = MutableStateFlow(ProfileUiState())
-    val uiState = _uiState.asStateFlow()
+
+    val uiState: StateFlow<ProfileUiState> =
+        _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -48,14 +49,19 @@ class ProfileViewModel(
 
         viewModelScope.launch {
             _uiState.update {
-                it.copy(isLoading = true, error = null)
+                it.copy(
+                    isLoading = true,
+                    error = null
+                )
             }
 
             try {
-                // Eliminar ambas tablas de Room.
+                // Eliminar personajes y locations de Room,
+                // incluyendo favoritos y cambios locales.
+                // También limpiar las imágenes almacenadas.
                 syncRepository.clearAllData()
 
-                // Eliminar el nombre de DataStore.
+                // Eliminar la sesión de DataStore.
                 sessionRepository.logout()
 
                 _uiState.update {
@@ -64,6 +70,7 @@ class ProfileViewModel(
                         logoutSuccessful = true
                     )
                 }
+
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

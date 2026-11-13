@@ -8,10 +8,11 @@ import androidx.room.RoomDatabase
         CharacterEntity::class,
         LocationEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
-abstract class AppDatabase : RoomDatabase(){
+abstract class AppDatabase : RoomDatabase() {
+
     abstract fun characterDao(): CharacterDao
 
     abstract fun locationDao(): LocationDao

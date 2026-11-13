@@ -2,39 +2,33 @@
 package plat.futurelabs.paiz.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import plat.futurelabs.paiz.screens.login.LoginScreen
+import plat.futurelabs.paiz.screens.login.LoginRoute
 import plat.futurelabs.paiz.screens.login.StartupScreen
 
 @Composable
-fun AppNavigation(
-    modifier: Modifier = Modifier
-) {
+fun AppNavigation() {
     val navController = rememberNavController()
 
     NavHost(
         navController = navController,
-        startDestination = StartupDestination,
-        modifier = modifier
+        startDestination = StartupDestination
     ) {
-
-        // Verificar sesión almacenada
 
         composable<StartupDestination> {
             StartupScreen(
-                onSessionFound = {
-                    navController.navigate(MainDestination) {
+                onNavigateToLogin = {
+                    navController.navigate(LoginDestination) {
                         popUpTo<StartupDestination> {
                             inclusive = true
                         }
                         launchSingleTop = true
                     }
                 },
-                onSessionNotFound = {
-                    navController.navigate(LoginDestination) {
+                onNavigateToMain = {
+                    navController.navigate(MainDestination) {
                         popUpTo<StartupDestination> {
                             inclusive = true
                         }
@@ -44,11 +38,9 @@ fun AppNavigation(
             )
         }
 
-        // Login
-
         composable<LoginDestination> {
-            LoginScreen(
-                onLoginSuccess = {
+            LoginRoute(
+                onLoginSuccessful = {
                     navController.navigate(MainDestination) {
                         popUpTo<LoginDestination> {
                             inclusive = true
@@ -58,8 +50,6 @@ fun AppNavigation(
                 }
             )
         }
-
-        // Aplicación principal
 
         composable<MainDestination> {
             MainNavigation(

@@ -1,3 +1,4 @@
+
 package plat.futurelabs.paiz.screens.profile
 
 import androidx.compose.foundation.layout.Arrangement
@@ -26,28 +27,38 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun ProfileScreen(
-    onLogoutClick: () -> Unit,
-    modifier: Modifier = Modifier,
+fun ProfileRoute(
+    onLogout: () -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.logoutSuccessful) {
         if (uiState.logoutSuccessful) {
-            onLogoutClick()
+            onLogout()
         }
     }
 
+    ProfileScreen(
+        uiState = uiState,
+        onLogoutClick = viewModel::logout
+    )
+}
+
+@Composable
+fun ProfileScreen(
+    uiState: ProfileUiState,
+    onLogoutClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(32.dp),
-
         horizontalAlignment = Alignment.CenterHorizontally,
-
         verticalArrangement = Arrangement.spacedBy(32.dp)
     ) {
+
         Surface(
             modifier = Modifier.size(200.dp),
             shape = CircleShape,
@@ -81,9 +92,7 @@ fun ProfileScreen(
         }
 
         OutlinedButton(
-            onClick = {
-                viewModel.logout()
-            },
+            onClick = onLogoutClick,
             enabled = !uiState.isLoading
         ) {
             Text(
